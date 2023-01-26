@@ -86,6 +86,7 @@
 
 #include "node/Bond.hpp"
 
+#include "service/OneNotifier.hpp"
 #include "service/OneService.hpp"
 
 #include <nlohmann/json.hpp>
@@ -227,7 +228,6 @@ static int cli(int argc,char **argv)
 						return 1;
 					}
 					break;
-
 				case 'v':
 					if (argv[i][2]) {
 						cliPrintHelp(argv[0],stdout);
@@ -1671,15 +1671,21 @@ static void _sighandlerHup(int sig)
 }
 static void _sighandlerReallyQuit(int sig)
 {
+	notifier.exit();
 	exit(0);
 }
 static void _sighandlerQuit(int sig)
 {
 	alarm(5); // force exit after 5s
 	OneService *s = zt1Service;
-	if (s)
+	if (s) {
+		notifier.exit();
 		s->terminate();
-	else exit(0);
+	}
+	else {
+		notifier.exit();
+		exit(0);
+	}
 }
 #endif
 
@@ -2007,6 +2013,8 @@ static void printHelp(const char *cn,FILE *out)
 
 	fprintf(out,"  -i                - Generate and manage identities (zerotier-idtool)" ZT_EOL_S);
 	fprintf(out,"  -q                - Query API (zerotier-cli)" ZT_EOL_S);
+	fprintf(out,"  -n<path>          - path to notifier script" ZT_EOL_S);
+	fprintf(out,"  -o<interface>     - interface name (like ztyqbuinha or zt0) to pass to notifier script" ZT_EOL_S);
 }
 
 class _OneServiceRunner
@@ -2131,6 +2139,23 @@ int main(int argc,char **argv)
 					}
 					break;
 
+				case 'n':
+					if (argv[i][2]) {
+						notifier.reload(argv[i] + 2);
+					} else {
+						printHelp(argv[0],stdout);
+						return 1;
+					}
+					break;
+				case 'o':
+					if (argv[i][2]) {
+						notifier.setIfd(argv[i] + 2);
+					} else {
+						printHelp(argv[0],stdout);
+						return 1;
+					}
+					break;
+ 
 #ifdef __UNIX_LIKE__
 				case 'd': // Run in background as daemon
 					runAsDaemon = true;

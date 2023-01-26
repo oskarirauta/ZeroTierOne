@@ -42,5 +42,6 @@ ONE_OBJS=\
 	osdep/Http.o \
 	osdep/OSUtils.o \
 	service/SoftwareUpdater.o \
+	service/OneNotifier.o \
 	service/OneService.o
 

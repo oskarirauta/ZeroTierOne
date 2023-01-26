@@ -52,6 +52,7 @@
 
 #include "OneService.hpp"
 #include "SoftwareUpdater.hpp"
+#include "OneNotifier.hpp"
 
 #if ZT_SSO_ENABLED
 #include <zeroidc.h>
@@ -910,7 +911,6 @@ public:
 				_node = new Node(this,(void *)0,&cb,OSUtils::now());
 			}
 
-
 			// local.conf
 			readLocalSettings();
 			applyLocalConfig();
@@ -1082,11 +1082,13 @@ public:
 				// If secondary port is not configured to a constant value and we've been offline for a while,
 				// bind a new secondary port. This is a workaround for a "coma" issue caused by buggy NATs that stop
 				// working on one port after a while.
+
 				if (_node->online()) {
 					lastOnline = now;
 				} else if ((_secondaryPort == 0)&&((now - lastOnline) > ZT_PATH_HEARTBEAT_PERIOD)) {
 					_secondaryPort = _getRandomPort();
 					lastBindRefresh = 0;
+					notifier.ifDown();
 				}
 
 				// Refresh bindings in case device's interfaces have changed, and also sync routes to update any shadow routes (e.g. shadow default)
@@ -1161,7 +1163,11 @@ public:
 
 					std::vector<InetAddress> boundAddrs(_binder.allBoundLocalInterfaceAddresses());
 					for(std::vector<InetAddress>::const_iterator i(boundAddrs.begin());i!=boundAddrs.end();++i) {
-						_node->addLocalInterfaceAddress(reinterpret_cast<const struct sockaddr_storage *>(&(*i)));
+						if ( _node->addLocalInterfaceAddress(reinterpret_cast<const struct sockaddr_storage *>(&(*i)))) {
+							if ( reinterpret_cast<const struct sockaddr_storage *>(&(*i)) -> ss_family == AF_INET && _node->online() && !notifier.isUp())
+								usleep(2500 * 1000);
+								notifier.ifUp();
+						}
 					}
 				}
 

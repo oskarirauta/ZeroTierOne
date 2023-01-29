@@ -1052,6 +1052,12 @@ void LinuxNetLink::addAddress(const InetAddress &addr, const char *iface)
 	_doRecv(fd);
 
 	close(fd);
+
+	std::string path("/sys/devices/virtual/net/" + std::string(iface) + "/uevent");
+	if ( ::access(path.c_str(), W_OK) == 0 && ::system(NULL) != 0) {
+		std::string cmdline("echo change >" + path + " &");
+		::system(cmdline.c_str());
+	}
 }
 
 void LinuxNetLink::removeAddress(const InetAddress &addr, const char *iface)

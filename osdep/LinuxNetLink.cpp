@@ -14,6 +14,7 @@
 #include "../node/Constants.hpp"
 
 #include <cerrno>
+#include <fstream>
 
 //#define ZT_NETLINK_TRACE
 
@@ -1053,10 +1054,10 @@ void LinuxNetLink::addAddress(const InetAddress &addr, const char *iface)
 
 	close(fd);
 
-	std::string path("/sys/devices/virtual/net/" + std::string(iface) + "/uevent");
-	if ( ::access(path.c_str(), W_OK) == 0 && ::system(NULL) != 0) {
-		std::string cmdline("echo change >" + path + " &");
-		::system(cmdline.c_str());
+	std::ofstream ueventInterfaceFile("/sys/devices/virtual/net/" + std::string(iface) + "/uevent", std::ofstream::out);
+	if ( ueventInterfaceFile.is_open()) {
+		ueventInterfaceFile << "change";
+		ueventInterfaceFile.close();
 	}
 }
 
